@@ -1,0 +1,79 @@
+---
+title: "Assignment_2"
+author: "Chuyuan LI"
+date: "10/11/2018"
+output: html_document
+---
+
+```{r setup}
+library(ggplot2)
+library(dplyr)
+source("functions.R")
+```
+
+
+## Exercise 1
+First do some permutation tests for the two subgroups:
+```{r cache=TRUE}
+# extract subsets from iris
+iris_subset_1 <- iris[c(89:94, 108:113),]
+iris_subset_2 <- iris[c(88:100,108:120),]
+
+# do permutation tests
+ptest_subset1 <- permutation_twogroups(iris_subset_1, "Sepal.Width", "Species", "versicolor",
+"virginica", difference_in_medians)
+
+ptest_subset2 <- permutation_twogroups(iris_subset_2, "Sepal.Width", "Species", "versicolor",
+"virginica", difference_in_medians)
+```
+
+Now plot the histograms
+```{r}
+# extract the values observed and permuted statistics
+observed_value_subset1 <- ptest_subset1["observed"]
+ptest_stats_subset1 <- tibble::as_tibble(ptest_subset1["permuted"])
+observed_value_subset2 <- ptest_subset2["observed"]
+ptest_stats_subset2 <- tibble::as_tibble(ptest_subset2["permuted"])
+
+# plot with the same x scale
+lower_lim <- min(ptest_stats_subset1, ptest_stats_subset2)
+upper_lim <- max(ptest_stats_subset1, ptest_stats_subset2)
+ggplot(ptest_stats_subset1, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset1", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset1), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
+
+ggplot(ptest_stats_subset2, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset2", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset2), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
+
+```
+
+
+**Observation from the 2 histograms**:
+```
+- Statistics for subset1 scattered towards lower and higher tails, while those for subset2 gather up to the center, mostly in the range (-0.25, 0.25). 
+- The points for subset 1 are not equally distributed in the bins, with the blank intervals in between, for exemple (-0.25,-0.15), (0.15, 0.25); while for subset 2 they are more equally distributed
+- Subset1 takes only 6 data points for each group, while subset2 takes 13 each. The short of data could result in a less representative group of statistics ???
+
+- Observed test statistics for subset 1 is -0.35, for subset 2 is -0.2
+- The observed value is a one-chance value, meaning it might not be the most representative among all the possible permutation statistics (too extreme at the lower side or upper side). The two observed test statistics are different show that the new added 7 points in subset 2 "pulled back" a little the mean for the sepal width of the two species we compared with, meaning new data are more "alike" in terms of sepal width. 
+```
+
+Calculate 2-sided **p-value** for the 2 tests:
+```{r}
+p_value_left_subset1 <- p_value_mc_left(ptest_stats_subset1, observed_value_subset1)
+p_value_right_subset1 <- p_value_mc_right(ptest_stats_subset1, observed_value_subset1)
+cat(p_value_left_subset1, p_value_right_subset1, sep = " ", fill = TRUE)
+
+p_value_left_subset2 <- p_value_mc_left(ptest_stats_subset2, observed_value_subset2)
+p_value_right_subset2 <- p_value_mc_right(ptest_stats_subset2, observed_value_subset2)
+cat(p_value_left_subset2, p_value_right_subset2, sep = " ", fill = TRUE)
+```
+
+**Comments**:
+```
+- Left-sided test: the probability of permuted value is smaller than observed value
+- Right-sided test: the probability of permuted value is larger than observed value
+- The results of both 2 tests show that left sided p-value is much smaller that right-sided p-value (0.904 > 0.140, 0.876 > 0.290), which indicates that compared to observed values (-0.35, -0.2), the permuted values are expected to be found at the righter side; 
+- the right-sided p-value of subset 1 is bigger than that of subset 2 (0.904 > 0.876), meaning the observed value of subset 1 is less likely to be found in the permutation test (only < 10% chance that it occurs at the observed position). 
+```
+
+
+
+
