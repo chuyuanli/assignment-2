@@ -34,3 +34,6 @@ p_value_mc_left <- function(simulated, observed) {
   return(mean(simulated <= observed))
 }
 
+
+
+

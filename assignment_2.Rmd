@@ -11,6 +11,9 @@ library(dplyr)
 source("functions.R")
 ```
 
+```{r}
+`%>%` <- magrittr::`%>%`
+```
 
 ## Exercise 1
 First do some permutation tests for the two subgroups:
@@ -73,6 +76,94 @@ cat(p_value_left_subset2, p_value_right_subset2, sep = " ", fill = TRUE)
 - The results of both 2 tests show that left sided p-value is much smaller that right-sided p-value (0.904 > 0.140, 0.876 > 0.290), which indicates that compared to observed values (-0.35, -0.2), the permuted values are expected to be found at the righter side; 
 - the right-sided p-value of subset 1 is bigger than that of subset 2 (0.904 > 0.876), meaning the observed value of subset 1 is less likely to be found in the permutation test (only < 10% chance that it occurs at the observed position). 
 ```
+
+## Exercise 2
+```{r}
+#install.packages("devtools")
+devtools::install_github("ewan/stats_course", subdir="data/stress_shift")
+```
+
+### Task A
+```{r}
+df_unamb <- stressshift::stress_shift_unamb
+stress_shift_3dict <- dplyr::filter(df_unamb, Dict %in% c("W1802", "J1917", "C1687"))
+print(nrow(stress_shift_3dict))
+```
+
+### Task B
+```{r}
+stress_shift_3dict_using_pipe <- df_unamb %>% dplyr::filter(Dict %in% c("W1802", "J1917", "C1687"))
+identical(stress_shift_3dict, stress_shift_3dict_using_pipe)
+```
+
+### Task C
+```{r}
+stress_shift_3dict_nouns <- dplyr::filter(stress_shift_3dict, Category=="Noun")
+stress_shift_3dict_verbs <- dplyr::filter(stress_shift_3dict, Category=="Verb")
+
+stress_shift_3dict_using_bind <- dplyr::bind_rows(stress_shift_3dict_nouns, stress_shift_3dict_verbs)
+stress_shift_3dict_using_bind_reversed <- dplyr::bind_rows(stress_shift_3dict_verbs, stress_shift_3dict_nouns)
+
+#check which of the two binded tables is identical with stress_shift_3dict
+identical(stress_shift_3dict_using_bind, stress_shift_3dict) 
+identical(stress_shift_3dict_using_bind_reversed, stress_shift_3dict)
+```
+
+The first binded table `stress_shift_3dict_using_bind` is identical with the `stress_shift_3dict` and the reversed one is not:
+
+- When create the table `stress_shift_3dict`, the original dataframe sorted the category albaphetcally, which means nouns appear in front of the verbs. 
+- When bind the separated dataframs `stress_shift_3dict_nouns` and `stress_shift_3dict_verbs` together, fonction `bind_rows` takes the first argument infront of the second one to create a new dataframe. 
+- fonction `identical()` checks the exactly equality between two arguemnts. When comparing `stress_shift_3dict_using_bind` and `stress_shift_3dict`, they have the same ordering, so identical; while `stress_shift_3dict_using_bind_reversed` is not because the odering of Category is not the same.
+- It wouldn't matter which one I'm working with since the content of the two tables is the same, I could use fonction `arrange(Category)`
+
+
+### Task D
+```{r}
+stress_shift_nouns_renamed <- df_unamb %>% 
+  dplyr::filter(Category=="Noun") %>%
+  dplyr::select(Word, Dict, Syllable) %>%
+  dplyr::rename(Syllable_Noun=Syllable)
+  
+stress_shift_verbs_renamed <- df_unamb %>% 
+  dplyr::filter(Category=="Verb") %>%
+  dplyr::select(Word, Dict, Syllable) %>%
+  dplyr::rename(Syllable_Verb=Syllable)
+
+stress_shift_wide <- dplyr::inner_join(stress_shift_nouns_renamed, stress_shift_verbs_renamed)
+
+# check the rows of stress_shift_wide and the 2 renamed tables
+n_v_rows <- nrow(stress_shift_nouns_renamed) + nrow(stress_shift_verbs_renamed)
+wide_rows <- nrow(stress_shift_wide)
+cat(nrow(stress_shift_nouns_renamed),nrow(stress_shift_verbs_renamed), n_v_rows, wide_rows)
+#head(stress_shift_wide)
+```
+
+By definition, `stress_shift_wide(x, y)` is a condensed table that takes all the rows in table x where there are matching values in y and all colomns in x and y. In this case, the two renamed tables each contains 3 colomns: Word, Dict, Syllable_Category with the first 2 colomns the same name, the only difference is the third colomn. When doing an inner_join, the result is `joined by c("Word", "Dict")` which means it takes the **rows that share the same value of "Word" and "Dict"** in both of the two tables and make it only one row, that's why it has fewer rows than the two original tables.
+
+
+### Task E
+```{r}
+# create a summarised table which sums up the counts of category and syllable combinasion
+df_unamb_summarised <- df_unamb %>% group_by(Category, Syllable) %>% summarise(Value=n())
+#print(df_unamb_summarised)
+
+ggplot2::ggplot(df_unamb_summarised, ggplot2::aes_string(fill="Syllable", x="Category", y="Value")) +
+  geom_bar(position="dodge", stat="identity") + ggplot2::ggtitle("Double bar plot for stress_shift_unamb")
+
+# do the same plot for stress_shift_permit
+df_permit <- stressshift::stress_shift_permit
+df_permit_summarised <- df_permit %>% group_by(Category, Syllable) %>% summarise(Value=n())
+ggplot2::ggplot(df_permit_summarised, ggplot2::aes_string(fill="Syllable", x="Category", y="Value")) +
+  geom_bar(position="dodge", stat="identity") + ggplot2::ggtitle("Double bar plot for stress_shift_permit")
+
+```
+
+
+
+
+
+
+
 
 
 
