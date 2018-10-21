@@ -19,13 +19,12 @@ source("functions.R")
 First do some permutation tests for the two subgroups:
 ```{r cache=TRUE}
 # extract subsets from iris
-iris_subset_1 <- iris[c(89:94, 108:113),]
-iris_subset_2 <- iris[c(88:100,108:120),]
+iris_subset_1 <- iris[c(89:94, 108:112),]
+iris_subset_2 <- iris[c(88:114),]
 
 # do permutation tests
 ptest_subset1 <- permutation_twogroups(iris_subset_1, "Sepal.Width", "Species", "versicolor",
 "virginica", difference_in_medians)
-
 ptest_subset2 <- permutation_twogroups(iris_subset_2, "Sepal.Width", "Species", "versicolor",
 "virginica", difference_in_medians)
 ```
@@ -50,12 +49,14 @@ ggplot(ptest_stats_subset2, aes(x=permuted)) + geom_histogram(color="white", fil
 
 **Observation from the 2 histograms**:
 ```
-- Statistics for subset1 scattered towards lower and higher tails, while those for subset2 gather up to the center, mostly in the range (-0.25, 0.25). 
-- The points for subset 1 are not equally distributed in the bins, with the blank intervals in between, for exemple (-0.25,-0.15), (0.15, 0.25); while for subset 2 they are more equally distributed
-- Subset1 takes only 6 data points for each group, while subset2 takes 13 each. The short of data could result in a less representative group of statistics ???
+- Statistics for subset1 scattered towards lower and higher tails; while those for subset2 gather up to the center, more symetrique than subset1.
+- There are many blank intervals in between the values for subset1, for exemple (-0.25,0); while for subset 2 they are more equally distributed with less blanks.
+- Subset1 takes 11 points ans subset2 takes 27. When adding points, there are more different combinaisons, so the difference of medians varies more, that's the reason there are less blank bins in subset2 and the graphe is more sysmetrique
 
-- Observed test statistics for subset 1 is -0.35, for subset 2 is -0.2
-- The observed value is a one-chance value, meaning it might not be the most representative among all the possible permutation statistics (too extreme at the lower side or upper side). The two observed test statistics are different show that the new added 7 points in subset 2 "pulled back" a little the mean for the sepal width of the two species we compared with, meaning new data are more "alike" in terms of sepal width. 
+- Observed test statistics for subset 1 is -0.3, for subset 2 is -0.25
+- Subset2 has an observed value bigger than subset1, meaning that the average Sepal.Width of subset2 is more alike with that of subset1
+- The observed value is a one-chance value, meaning it is not the most representative among all the possible permutation statistics (too extreme at the lower side or upper side). 
+
 ```
 
 Calculate 2-sided **p-value** for the 2 tests:
@@ -69,12 +70,12 @@ p_value_right_subset2 <- p_value_mc_right(ptest_stats_subset2, observed_value_su
 cat(p_value_left_subset2, p_value_right_subset2, sep = " ", fill = TRUE)
 ```
 
-**Comments**:
+**Comments on two-sided p-value**:
 ```
 - Left-sided test: the probability of permuted value is smaller than observed value
 - Right-sided test: the probability of permuted value is larger than observed value
-- The results of both 2 tests show that left sided p-value is much smaller that right-sided p-value (0.904 > 0.140, 0.876 > 0.290), which indicates that compared to observed values (-0.35, -0.2), the permuted values are expected to be found at the righter side; 
-- the right-sided p-value of subset 1 is bigger than that of subset 2 (0.904 > 0.876), meaning the observed value of subset 1 is less likely to be found in the permutation test (only < 10% chance that it occurs at the observed position). 
+- The results of both 2 tests show that left sided p-value is much smaller that right-sided p-value (0.778 > 0.275, 0.944 > 0.128). Compared to observed values of subset1 -0.3, more than 77% permutated values are large than -0.3; as for subset2, more than 94% of permutated values are larger than observed value -0.25. 
+- the right-sided p-value of subset2 is bigger than that of subset 2 (0.944 > 0.778), meaning the observed value of subset2 is less likely to be found in the permutation test (< 6% chance that it occurs at the observed position). 
 ```
 
 ## Exercise 2
