@@ -115,7 +115,7 @@ The first binded table `stress_shift_3dict_using_bind` is identical with the `st
 - When create the table `stress_shift_3dict`, the original dataframe sorted the category albaphetcally, which means nouns appear in front of the verbs. 
 - When bind the separated dataframs `stress_shift_3dict_nouns` and `stress_shift_3dict_verbs` together, fonction `bind_rows` takes the first argument infront of the second one to create a new dataframe. 
 - fonction `identical()` checks the exactly equality between two arguemnts. When comparing `stress_shift_3dict_using_bind` and `stress_shift_3dict`, they have the same ordering, so identical; while `stress_shift_3dict_using_bind_reversed` is not because the odering of Category is not the same.
-- It wouldn't matter which one I'm working with since the content of the two tables is the same, I could use fonction `arrange(Category)`
+- It wouldn't matter which one I'm working with since the content of the two tables is the same, I could use fonction `arrange(Category)` if needed to change the inner order.
 
 
 ### Task D
@@ -136,18 +136,17 @@ stress_shift_wide <- dplyr::inner_join(stress_shift_nouns_renamed, stress_shift_
 n_v_rows <- nrow(stress_shift_nouns_renamed) + nrow(stress_shift_verbs_renamed)
 wide_rows <- nrow(stress_shift_wide)
 cat(nrow(stress_shift_nouns_renamed),nrow(stress_shift_verbs_renamed), n_v_rows, wide_rows)
-#head(stress_shift_wide)
+# head(stress_shift_wide)
 ```
 
-By definition, `stress_shift_wide(x, y)` is a condensed table that takes all the rows in table x where there are matching values in y and all colomns in x and y. In this case, the two renamed tables each contains 3 colomns: Word, Dict, Syllable_Category with the first 2 colomns the same name, the only difference is the third colomn. When doing an inner_join, the result is `joined by c("Word", "Dict")` which means it takes the **rows that share the same value of "Word" and "Dict"** in both of the two tables and make it only one row, that's why it has fewer rows than the two original tables.
+By definition, `stress_shift_wide(x, y)` is a condensed table that takes all the rows in table x where there are matching values in y and all colomns in x and y. In this case, the two renamed tables each contains 3 colomns: Word, Dict, Syllable_Category with the first 2 colomns the same name, the only difference is the third colomn. When doing an inner_join, the result is `joined by c("Word", "Dict")` which means it only take the **rows that share the same value of "Word" and "Dict"** in both of the two tables and make it only one row, that's why it has fewer rows than any one of the two original tables.
 
 
 ### Task E
 ```{r}
 # create a summarised table which sums up the counts of category and syllable combinasion
 df_unamb_summarised <- df_unamb %>% group_by(Category, Syllable) %>% summarise(Value=n())
-#print(df_unamb_summarised)
-
+print(df_unamb_summarised)
 ggplot2::ggplot(df_unamb_summarised, ggplot2::aes_string(fill="Syllable", x="Category", y="Value")) +
   geom_bar(position="dodge", stat="identity") + ggplot2::ggtitle("Double bar plot for stress_shift_unamb")
 
@@ -159,11 +158,161 @@ ggplot2::ggplot(df_permit_summarised, ggplot2::aes_string(fill="Syllable", x="Ca
 
 ```
 
+### Task F
+```{r}
+stress_shift_group_by_word <- stress_shift_wide %>% group_by(Word) %>% summarise(Total = n())
+#print(stress_shift_byword2)
+
+stress_shift_noun_syll_1 <- stress_shift_wide %>% filter(Syllable_Noun == "Syllable 1") %>% group_by(Word) %>% summarise(Count_noun = n())
+#print(stress_shift_noun_syll_1)
+
+stress_shift_verb_syll_1 <- stress_shift_wide %>% filter(Syllable_Verb == "Syllable 1") %>% group_by(Word) %>% summarise(Count_verb = n())
+#print(stress_shift_verb_syll_1)
+
+left_joined_groups <- left_join(stress_shift_group_by_word, stress_shift_verb_syll_1, by="Word") %>% left_join(., stress_shift_noun_syll_1, by="Word")
+# print(left_joined_groups)
+
+stress_shift_byword <- left_joined_groups %>% mutate(Noun_Percent_Syll_1 = Count_noun / Total, Verb_Percent_Syll_1 = Count_verb / Total) %>% select(Word, Noun_Percent_Syll_1, Verb_Percent_Syll_1)
+print(stress_shift_byword)
+print(nrow(stress_shift_byword) == 149)
+```
+
+### Task G
+```{r}
+ggplot2::ggplot(stress_shift_byword, aes(x=Noun_Percent_Syll_1, y=Verb_Percent_Syll_1)) + geom_point(shape=1) + labs(title = "Scatterplot of syllable 1 in category noun v.s verb in each word")
+```
+
+### Task H
+```{r}
+n_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Noun") %>% group_by(Word) %>% summarise(Noun_total = n())
+v_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Verb") %>% group_by(Word) %>% summarise(Verb_total = n())
+stress_shift_full_wide <- full_join(n_groupby_word, v_groupby_word)
+# print(stress_shift_full_wide)
+
+n_syll1_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Noun", Syllable == "Syllable 1") %>% group_by(Word) %>% summarise(Count_n_syll1 = n())
+v_syll1_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Verb", Syllable == "Syllable 1") %>% group_by(Word) %>% summarise(Count_v_syll1 = n())
+
+stress_shift_byword_all <- left_join(stress_shift_full_wide, n_syll1_groupby_word) %>% left_join(., v_syll1_groupby_word) %>% mutate(Noun_Percent_Syll_1 = Count_n_syll1 / Noun_total, Verb_Percent_Syll_1 = Count_v_syll1 / Verb_total) %>% select(Word, Noun_Percent_Syll_1, Verb_Percent_Syll_1)
+print(stress_shift_byword_all)
+```
 
 
+## Exercise 3
+
+```{r}
+set.seed(12)
+# Create 2 normal distributions
+sample_a1 <- rnorm(50, 3, 2)
+sample_b1 <- rnorm(50, 4, 2)
+set.seed(NULL)
+# create a dataframe with 2 colomns
+df1 <- tibble::data_frame(value=c(sample_a1, sample_b1), group=c(rep("A", 50), rep("B",50)))
+# t-test based on df
+t.test(dplyr::filter(df1, group == "A")$value, dplyr::filter(df1, group == "B")$value)
+```
+**Explanation 1**
+
+The result tells that the t-value equals to -4.196 with a degree of freedom at 97.99. 
+We can say that at 95% confidence level, there IS significant difference (p-value = 5.974e-05) of the two means. Hence we should reject the null hypothesis that the two means are equal because the p-value is much smaller than 0.05. The maximum difference of the mean can be as low as -2.13 and as high as -0.76. It also shows that the estimated sample mean for x is 2.71 and that for sample_b is 4.16 (which is reasonable because we set them at 3 and 4 respectively).
 
 
+Now re-do the t-test with 5 samples in each of the group:
+```{r}
+set.seed(12)
+sample_a2 <- rnorm(5, 3, 2)
+sample_b2 <- rnorm(5, 4, 2)
+set.seed(NULL)
 
+df2 <- tibble::data_frame(value=c(sample_a2, sample_b2), group=c(rep("A", 5), rep("B",5)))
+t.test(dplyr::filter(df2, group == "A")$value, dplyr::filter(df2, group == "B")$value)
+```
+**Explanation 2**
+
+Here at 95% confidence level, there is NO significant difference (p-value = 0.1577) of the two means. So we should accept the null hypothesis that the two means are equal because the p-value is larger than 0.05. The maximum difference of the mean can be as low as -5.52 and as high as 1.21.
+
+
+**Why different**
+
+For experiment 1 we reject the null hypothesis, while for the experiment 2 we accepte it because the seconde p-value is larger than 0.05. With other parameters stay the same, the reason for which is that we reduce the number of observations from 50 to 5.  Run the permutation test:
+
+
+```{r cache=TRUE}
+statistics1 <- permutation_t_test(df1, 'value', 'group', 'A', 'B')
+statistics2 <- permutation_t_test(df2, 'value', 'group', 'A', 'B')
+```
+
+
+Plot the results with reference to the original statistics:
+```{r}
+hist(statistics1, freq = F, breaks = 80, xlim = range(-4.2,4.2))
+abline(v=t.test(sample_a1, sample_b1)$statistic, col='red')
+hist(statistics2, freq = F, breaks = 80, xlim = range(-4.2,4.2))
+abline(v=t.test(sample_a2, sample_b2)$statistic, col='red')
+```
+
+**Observation**
+
+- within the same x-limit, statistics 2 has more blank ranges than that of statistics 1, which means there are more missing combinations due to the small number of observations
+- the original statistic line for permutation test 1 lies **outside** the histogram of range (-4, 4) which means that the chance are so small that under null hypothesis we could find a value also extreme as -4.196, that's why we reject the null hypothesis
+- while the original statistic permuation test 2 lines inside the histogram with a relative high probability (p-value>0.05) to observe this value, that's why we accepte the null hypothesis
+
+
+## Exercise 4
+
+```{r cache=TRUE}
+sample_size <- c(50, 5)
+standard_deviation <- c(2, 6)
+diff_in_mean <- c(1, 2)
+power_df <- NULL # a dataframe to show the statistical power for each combination
+
+for (size in sample_size){
+  for (sd in standard_deviation){
+    for (diff in diff_in_mean){
+      
+      N_TEST <- 9999
+      n_successes <- 0
+      for (i in 1: N_TEST){
+        sample_a <- rnorm(size, 3, sd)
+        sample_b <- rnorm(size, 3+diff, sd)
+        df <- tibble::data_frame(value=c(sample_a, sample_b), group=c(rep("A", size), rep("B",size)))
+        pval <- t.test(dplyr::filter(df, group == "A")$value, dplyr::filter(df, group == "B")$value)$p.value
+        if (pval < 0.05){
+          n_successes <- n_successes + 1
+        }
+      }
+      power <- n_successes / N_TEST
+      power_df_current <- tibble::data_frame(power=power, size=size, sd=sd, diff=diff)
+      power_df <- dplyr::bind_rows(power_df, power_df_current)
+    }
+  }
+}
+
+```
+
+Now plot the results with tidyr and ggplot2:
+```{r}
+power_df %>%
+  tidyr::gather(-power, key = "var", value = "value") %>% 
+  ggplot2::ggplot(aes(x = value, y = power)) +
+    geom_point() +
+    facet_wrap(~ var, scales = "free") +
+    theme_bw()
+```
+
+**Explanation**
+
+- The use of library tidyr aims at treating each variable by itself, and observe their influence on the statistical power
+- The use of facet_wrap and theme_by from ggplot2 aims at combine the separate graphs into a complete one.
+
+- Horizontally, there are 3 points shown in the **"same line"** in the 3 sub-graphs respectively, which represent 1 possible combination (for exemple, on the top line with the power = 0.999, the corresponding combination is: diff=2, sd=2, size=50). In total there are 8 'lines', so 8 combinations; from up to bottom, we can see the different combinations yield different statistical powers
+- In each of the sub-graph, compare a **paired points** from left to right, say in the sub-graph diff, we can observe the 2 highest points: one with diff=1, power=0.698 on the left, and one with diff=2, power=0.999 on the right. These paired two points have the *same sd and size*, only differ by diff. Obviously, diff=2 yields a better power value than diff=1 (we can check for the rest 3 paired points in this sub-graph). The same reasoning goes for sub-graph sd and size. In short:
+
+  - diff=2 gives higher power than diff=1
+  - standard deviation=2 gives higher power than sd=6
+  - size=50 gives higher power than size=5
+  
+- In conclusion, a bigger size of samples, with a smaller standard deviation and a bigger
+difference in the means yield a higher statistical power in the resampling test.
 
 
 
