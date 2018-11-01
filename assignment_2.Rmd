@@ -6,9 +6,9 @@ output: html_document
 ---
 
 ```{r setup}
+source("functions.R")
 library(ggplot2)
 library(dplyr)
-source("functions.R")
 ```
 
 ```{r}
@@ -40,9 +40,9 @@ ptest_stats_subset2 <- tibble::as_tibble(ptest_subset2["permuted"])
 # plot with the same x scale
 lower_lim <- min(ptest_stats_subset1, ptest_stats_subset2)
 upper_lim <- max(ptest_stats_subset1, ptest_stats_subset2)
-ggplot(ptest_stats_subset1, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset1", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset1), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
+ggplot2::ggplot(ptest_stats_subset1, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset1", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset1), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
 
-ggplot(ptest_stats_subset2, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset2", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset2), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
+ggplot2::ggplot(ptest_stats_subset2, aes(x=permuted)) + geom_histogram(color="white", fill="blue") + labs(title = "Histogram of observed value and permuted values subset2", x = "permuted values", y = "count") + geom_vline(aes(xintercept=unlist(observed_value_subset2), color = "observed_value"), show.legend = T, size = 1) + xlim(lower_lim, upper_lim)
 
 ```
 
@@ -135,8 +135,7 @@ stress_shift_wide <- dplyr::inner_join(stress_shift_nouns_renamed, stress_shift_
 # check the rows of stress_shift_wide and the 2 renamed tables
 n_v_rows <- nrow(stress_shift_nouns_renamed) + nrow(stress_shift_verbs_renamed)
 wide_rows <- nrow(stress_shift_wide)
-cat(nrow(stress_shift_nouns_renamed),nrow(stress_shift_verbs_renamed), n_v_rows, wide_rows)
-# head(stress_shift_wide)
+cat(n_v_rows, wide_rows)
 ```
 
 By definition, `stress_shift_wide(x, y)` is a condensed table that takes all the rows in table x where there are matching values in y and all colomns in x and y. In this case, the two renamed tables each contains 3 colomns: Word, Dict, Syllable_Category with the first 2 colomns the same name, the only difference is the third colomn. When doing an inner_join, the result is `joined by c("Word", "Dict")` which means it only take the **rows that share the same value of "Word" and "Dict"** in both of the two tables and make it only one row, that's why it has fewer rows than any one of the two original tables.
@@ -146,9 +145,7 @@ By definition, `stress_shift_wide(x, y)` is a condensed table that takes all the
 ```{r}
 # create a summarised table which sums up the counts of category and syllable combinasion
 df_unamb_summarised <- df_unamb %>% group_by(Category, Syllable) %>% summarise(Value=n())
-print(df_unamb_summarised)
-ggplot2::ggplot(df_unamb_summarised, ggplot2::aes_string(fill="Syllable", x="Category", y="Value")) +
-  geom_bar(position="dodge", stat="identity") + ggplot2::ggtitle("Double bar plot for stress_shift_unamb")
+ggplot2::ggplot(df_unamb_summarised, ggplot2::aes_string(fill="Syllable", x="Category", y="Value")) + geom_bar(position="dodge", stat="identity") + ggplot2::ggtitle("Double bar plot for stress_shift_unamb")
 
 # do the same plot for stress_shift_permit
 df_permit <- stressshift::stress_shift_permit
@@ -160,20 +157,18 @@ ggplot2::ggplot(df_permit_summarised, ggplot2::aes_string(fill="Syllable", x="Ca
 
 ### Task F
 ```{r}
+# extract the number of all words, syllable1 nouns, syllable1 verbs respectively
 stress_shift_group_by_word <- stress_shift_wide %>% group_by(Word) %>% summarise(Total = n())
-#print(stress_shift_byword2)
-
 stress_shift_noun_syll_1 <- stress_shift_wide %>% filter(Syllable_Noun == "Syllable 1") %>% group_by(Word) %>% summarise(Count_noun = n())
-#print(stress_shift_noun_syll_1)
-
 stress_shift_verb_syll_1 <- stress_shift_wide %>% filter(Syllable_Verb == "Syllable 1") %>% group_by(Word) %>% summarise(Count_verb = n())
-#print(stress_shift_verb_syll_1)
 
+# left join the above information and create a table
 left_joined_groups <- left_join(stress_shift_group_by_word, stress_shift_verb_syll_1, by="Word") %>% left_join(., stress_shift_noun_syll_1, by="Word")
-# print(left_joined_groups)
 
+# create a column to calculate the percentages
 stress_shift_byword <- left_joined_groups %>% mutate(Noun_Percent_Syll_1 = Count_noun / Total, Verb_Percent_Syll_1 = Count_verb / Total) %>% select(Word, Noun_Percent_Syll_1, Verb_Percent_Syll_1)
-print(stress_shift_byword)
+
+# verify that the table has 149 lines
 print(nrow(stress_shift_byword) == 149)
 ```
 
@@ -184,10 +179,10 @@ ggplot2::ggplot(stress_shift_byword, aes(x=Noun_Percent_Syll_1, y=Verb_Percent_S
 
 ### Task H
 ```{r}
+# The same procedure with Task F
 n_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Noun") %>% group_by(Word) %>% summarise(Noun_total = n())
 v_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Verb") %>% group_by(Word) %>% summarise(Verb_total = n())
 stress_shift_full_wide <- full_join(n_groupby_word, v_groupby_word)
-# print(stress_shift_full_wide)
 
 n_syll1_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Noun", Syllable == "Syllable 1") %>% group_by(Word) %>% summarise(Count_n_syll1 = n())
 v_syll1_groupby_word <- stressshift::stress_shift_unamb %>% filter(Category == "Verb", Syllable == "Syllable 1") %>% group_by(Word) %>% summarise(Count_v_syll1 = n())
@@ -233,7 +228,7 @@ Here at 95% confidence level, there is NO significant difference (p-value = 0.15
 
 **Why different**
 
-For experiment 1 we reject the null hypothesis, while for the experiment 2 we accepte it because the seconde p-value is larger than 0.05. With other parameters stay the same, the reason for which is that we reduce the number of observations from 50 to 5.  Run the permutation test:
+For experiment 1 we reject the null hypothesis, while for the experiment 2 we accept it because the seconde p-value is larger than 0.05. With other parameters stay the same, the reason for which is that we reduce the number of observations from 50 to 5.  Run the permutation test:
 
 
 ```{r cache=TRUE}
@@ -305,7 +300,7 @@ power_df %>%
 - The use of facet_wrap and theme_by from ggplot2 aims at combine the separate graphs into a complete one.
 
 - Horizontally, there are 3 points shown in the **"same line"** in the 3 sub-graphs respectively, which represent 1 possible combination (for exemple, on the top line with the power = 0.999, the corresponding combination is: diff=2, sd=2, size=50). In total there are 8 'lines', so 8 combinations; from up to bottom, we can see the different combinations yield different statistical powers
-- In each of the sub-graph, compare a **paired points** from left to right, say in the sub-graph diff, we can observe the 2 highest points: one with diff=1, power=0.698 on the left, and one with diff=2, power=0.999 on the right. These paired two points have the *same sd and size*, only differ by diff. Obviously, diff=2 yields a better power value than diff=1 (we can check for the rest 3 paired points in this sub-graph). The same reasoning goes for sub-graph sd and size. In short:
+- In each of the sub-graph, compare a **paired points** of two values, say in the sub-graph diff, we can observe the 2 highest points: one with diff=1, power=0.698 on the left, and one with diff=2, power=0.999 on the right. These paired two points have the *same sd and size*, only differ by diff. Obviously, diff=2 yields a better power value than diff=1 (we can check for the rest 3 paired points in this sub-graph). The same reasoning goes for sub-graph sd and size. In short:
 
   - diff=2 gives higher power than diff=1
   - standard deviation=2 gives higher power than sd=6
